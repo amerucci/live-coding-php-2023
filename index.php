@@ -1,4 +1,7 @@
-<?php ini_set('display_errors', 1); ?>
+<?php ini_set('display_errors', 1);
+require_once('functions.php');
+?>
+
 
 
 
@@ -8,12 +11,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
-    <title>Systeme ajout noSQL PHP</title>
+    <title>Systeme ajout PHP/SQL</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/">
-
-
-
     <!-- Bootstrap core CSS -->
     <link href="/docs/5.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
@@ -86,31 +86,12 @@
 
             <?php
 
+            /*********************
+             * AJOUT D'UNE TACHE *
+             *********************/
+
             if (isset($_GET['taskadd']) && $_GET['taskadd'] == "ajouter") {
-
-                if (!empty($_GET['taskname']) && !empty($_GET['taskdesc']) && !empty($_GET['taskdate'])) {
-                    // Récupérer la tâche à ajouter depuis le formulaire ou une autre source
-                    $nouvelleTache = $_GET['taskname'] . "+-+" . $_GET['taskdesc'] . "+-+" . $_GET['taskdate'] . "+-+" . $_GET['status'];
-
-                    // Vérifier si le fichier existe déjà
-                    if (file_exists('taches.txt')) {
-                        // Ouvrir le fichier en mode d'écriture et lecture
-                        $fichier = fopen('taches.txt', 'a+');
-                    } else {
-                        // Créer un nouveau fichier s'il n'existe pas
-                        $fichier = fopen('taches.txt', 'w');
-                    }
-
-                    // Écrire la nouvelle tâche dans le fichier
-                    fwrite($fichier, $nouvelleTache . "\n");
-
-                    // Fermer le fichier
-                    fclose($fichier);
-
-                    echo "<script>window.location='./'</script>";
-                 
-                    // header("Location: ./");
-                }
+                addTask();
             }
 
 
@@ -122,6 +103,36 @@
         <div class="col-12 col-md-8 p-5">
             <h1 class="h3 mb-3 fw-normal">Liste des taches</h1>
 
+            <?php
+
+            /****************
+             * MISE A JOUR *
+             ****************/
+
+            if (isset($_GET['taskaction']) && $_GET['taskaction'] == "Update") {
+                $contenu = getTask();
+           
+                echo " 
+                                <form class='row'>
+                                <input type='text' name='taskname' class='form-control mb-3' value='" . htmlspecialchars($contenu['name_task'], ENT_QUOTES, 'UTF-8') . "'>
+                                <input type='text' name='taskdesc' class='form-control mb-3' value='" . htmlspecialchars($contenu['desc_task'], ENT_QUOTES, 'UTF-8')  . "'>
+                                <input type='date' name='taskdate' class='form-control mb-3' value='" . $contenu['date_task'] . "'>
+                                <select name='status' class='form-control mb-3'>
+                                <option value='" . $contenu['status_task'] . "' selected>" . $contenu['status_task'] . "</option>
+                                <option value='A faire'>A faire</option>
+                                <option value='Urgent'>Urgent</option>
+                                <option value='Fait'>Fait</option>
+                                </select>
+                                <input type='hidden' name='idtoupdate' value='" . $contenu['id_task'] . "'>
+                                <input type='submit' name='modifier' class='w-50 btn btn-lg btn-primary' value='modifier'>
+                                </form>                   
+                                ";
+            }
+
+            if (isset($_GET['modifier']) && $_GET['modifier'] == "modifier") {
+                updateTask();
+            }
+            ?>
 
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
@@ -131,30 +142,34 @@
                             <th scope="col">Description</th>
                             <th scope="col">Date limite</th>
                             <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
-                        // Vérifier si le fichier existe
-                        if (file_exists('taches.txt')) {
-                            // Lire le contenu du fichier dans une variable
-                            $contenu = file_get_contents('taches.txt');
 
-                            // Diviser le contenu en un tableau de tâches
-                            $taches = explode("\n", $contenu);
-
-                            // Afficher chaque tâche
-                            for ($i = 0; $i < count($taches) - 1; $i++) {
-                                echo "<tr>";
-                                $tacheUnitaire = explode("+-+", $taches[$i]);
-                                for ($j = 0; $j < count($tacheUnitaire); $j++) {
-                                    echo "<td>" . $tacheUnitaire[$j] . "</td>";
-                                }
-                                echo "</tr>";
-                            }
-                        } else {
-                            echo "Le fichier des tâches n'existe pas.";
+                        $contenu = getTasks();
+                        // Afficher chaque tâche
+                        for ($i = 0; $i < count($contenu); $i++) {
+                            echo "<tr>";
+                            echo "<td>" . $contenu[$i]['name_task'] . "</td>";
+                            echo "<td>" . $contenu[$i]['desc_task'] . "</td>";
+                            echo "<td>" . $contenu[$i]['date_task'] . "</td>";
+                            echo "<td>" . $contenu[$i]['status_task'] . "</td>";
+                            echo "<td><a href='?taskaction=Supprimer&idtodelete=" . ($contenu[$i]['id_task']) . "'>Supprimer</a> <a href='?taskaction=Update&idtoupdate=" . ($contenu[$i]['id_task']) . "'>Mettre a jour</a></td>";
+                            echo "</tr>";
                         }
+                        /***************
+                         * SUPPRESSION *
+                         ***************/
+                        if (isset($_GET['taskaction']) && $_GET['taskaction'] == "Supprimer") {
+                            deleteTask();
+                        }
+
+
+
+
+
                         ?>
                     </tbody>
                 </table>

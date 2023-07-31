@@ -1,0 +1,1 @@
+<?php $siteTitle = "Kev'Truand"; ?>
